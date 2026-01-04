@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import '../home_screen.dart';
 import '../signup/signup_screen.dart';
 
@@ -13,6 +14,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  FirebaseAuth auth = FirebaseAuth.instance;
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
 
@@ -41,6 +43,35 @@ class _LoginScreenState extends State<LoginScreen> {
           });
         }
       }
+  }
+
+  Future<void> _ContinueWithGoogle() async {
+    try{
+      String webClientId = "650822100252-k33j3padt7p7l8828t6iqb1i6nfdvkpc.apps.googleusercontent.com";
+      GoogleSignIn signIn = GoogleSignIn.instance;
+      await signIn.initialize(serverClientId: webClientId);
+      GoogleSignInAccount account = await signIn.authenticate();
+      GoogleSignInAuthentication googleAuth = account.authentication;
+      final credential = GoogleAuthProvider.credential(
+        idToken: googleAuth.idToken
+      );
+      setState(() {
+        _isLoading = true;
+      });
+      auth.signInWithCredential(credential);
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => HomeScreen()),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString()))
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -127,7 +158,18 @@ class _LoginScreenState extends State<LoginScreen> {
                   );
                 },
                 child: Text("Don\'t have an account? Sign Up"),
-              )
+              ),
+              SizedBox(height: 16,),
+              ElevatedButton(
+                onPressed: () {
+                  _ContinueWithGoogle();
+                },
+                child: Text('Continue with Google'),
+                style: ElevatedButton.styleFrom(
+                    minimumSize: Size(double.infinity, 50)
+                ),
+              ),
+
             ],
           ),
         ),
