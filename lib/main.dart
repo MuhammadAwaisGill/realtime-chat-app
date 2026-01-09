@@ -1,6 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:realtime_chat_app/screens/login/login_screen.dart';
+import 'package:realtime_chat_app/screens/splash/splash_screen.dart';
 
 import 'firebase_options.dart';
 
@@ -20,7 +20,7 @@ class ChatApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: "Chat App",
-      home: LoginScreen(),
+      home: SplashScreen(),
     );
   }
 }

@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:realtime_chat_app/screens/login/login_screen.dart';
@@ -10,6 +11,8 @@ class SignupScreen extends StatefulWidget {
 }
 
 class _SignupScreenState extends State<SignupScreen> {
+  final auth = FirebaseAuth.instance;
+  final firestore = FirebaseFirestore.instance;
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -29,6 +32,16 @@ class _SignupScreenState extends State<SignupScreen> {
         );
 
         await userCredential.user?.updateDisplayName(_nameController.text.trim());
+
+        await FirebaseFirestore.instance
+        .collection('users')
+        .doc(userCredential.user!.uid)
+        .set({
+          'uid': userCredential.user!.uid,
+          'email': _emailController.text.trim(),
+          'displayName': _nameController.text.trim(),
+          'createdAt': FieldValue.serverTimestamp()
+        });
 
         Navigator.pop(context);
       } on FirebaseException catch (e) {
