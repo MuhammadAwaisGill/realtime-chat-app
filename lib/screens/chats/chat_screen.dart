@@ -1,13 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
 import 'chats_lists_screen.dart';
 
 class ChatScreen extends StatelessWidget {
   final currentUser = FirebaseAuth.instance.currentUser!;
 
   ChatScreen({super.key});
+
+  String _formatTime(Timestamp timestamp) {
+    final date = timestamp.toDate();
+    final now = DateTime.now();
+
+    if (date.day == now.day) {
+      return '${date.hour}:${date.minute.toString().padLeft(2, '0')}';
+    }
+    return '${date.day}/${date.month}';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +36,7 @@ class ChatScreen extends StatelessWidget {
         stream: FirebaseFirestore.instance
             .collection('chats')
             .where('participants', arrayContains: currentUser.uid)
-            .snapshots(), // Removed orderBy
+            .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(child: CircularProgressIndicator());
@@ -50,7 +59,6 @@ class ChatScreen extends StatelessWidget {
 
           var chats = snapshot.data!.docs;
 
-          // Sort chats manually by lastMessageTime (handling nulls)
           chats.sort((a, b) {
             final aData = a.data() as Map<String, dynamic>;
             final bData = b.data() as Map<String, dynamic>;
@@ -58,13 +66,11 @@ class ChatScreen extends StatelessWidget {
             final aTime = aData['lastMessageTime'] as Timestamp?;
             final bTime = bData['lastMessageTime'] as Timestamp?;
 
-            // If both are null, keep original order
             if (aTime == null && bTime == null) return 0;
-            // Put chats without messages at the end
+
             if (aTime == null) return 1;
             if (bTime == null) return -1;
 
-            // Sort by time descending (newest first)
             return bTime.compareTo(aTime);
           });
 
@@ -74,7 +80,6 @@ class ChatScreen extends StatelessWidget {
               final chat = chats[index].data() as Map<String, dynamic>;
               final chatId = chats[index].id;
 
-              // Get other user's ID
               final otherUserId = (chat['participants'] as List)
                   .firstWhere((id) => id != currentUser.uid);
 
@@ -122,21 +127,11 @@ class ChatScreen extends StatelessWidget {
                       );
                     },
                   );
-                },
-              );            },
+                });
+              },
           );
         },
       ),
     );
-  }
-
-  String _formatTime(Timestamp timestamp) {
-    final date = timestamp.toDate();
-    final now = DateTime.now();
-
-    if (date.day == now.day) {
-      return '${date.hour}:${date.minute.toString().padLeft(2, '0')}';
-    }
-    return '${date.day}/${date.month}';
   }
 }

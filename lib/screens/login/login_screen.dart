@@ -170,7 +170,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       minimumSize: Size(double.infinity, 50)
                   ),
                 ),
-        
               ],
             ),
           ),

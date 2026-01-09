@@ -29,18 +29,15 @@ class _ContactsScreenState extends State<ContactsScreen> {
   Future<void> startChat(BuildContext context, Map<String, dynamic> contact) async {
     final currentUser = FirebaseAuth.instance.currentUser!;
 
-    // Create unique chat ID by sorting user IDs
     List<String> ids = [currentUser.uid, contact['uid']];
     ids.sort();
     String chatId = ids.join('_');
 
-    // Check if chat already exists
     final chatDoc = await FirebaseFirestore.instance
         .collection('chats')
         .doc(chatId)
         .get();
 
-    // If chat doesn't exist, create it
     if (!chatDoc.exists) {
       await FirebaseFirestore.instance
           .collection('chats')
@@ -49,11 +46,9 @@ class _ContactsScreenState extends State<ContactsScreen> {
         'participants': [currentUser.uid, contact['uid']],
         'createdAt': FieldValue.serverTimestamp(),
         'lastMessage': '',
-        // Don't set lastMessageTime - it will be set when first message is sent
       });
     }
 
-    // Navigate to chat screen
     Navigator.push(
       context,
       MaterialPageRoute(
