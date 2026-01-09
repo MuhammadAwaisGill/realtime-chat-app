@@ -88,13 +88,17 @@ class ChatScreen extends StatelessWidget {
                     return SizedBox();
                   }
 
-                  final otherUser = userSnapshot.data!.data() as Map<String, dynamic>;
+                  final otherUser = userSnapshot.data!.data() as Map<String, dynamic>?;
+
+                  if (otherUser == null) {
+                    return SizedBox();
+                  }
 
                   return ListTile(
                     leading: CircleAvatar(
-                      child: Text(otherUser['displayName'][0].toUpperCase()),
+                      child: Text(otherUser['displayName']?[0].toUpperCase() ?? 'U'),
                     ),
-                    title: Text(otherUser['displayName']),
+                    title: Text(otherUser['displayName'] ?? 'Unknown User'),
                     subtitle: Text(
                       chat['lastMessage'] ?? 'No messages yet',
                       maxLines: 1,
@@ -112,15 +116,14 @@ class ChatScreen extends StatelessWidget {
                         MaterialPageRoute(
                           builder: (context) => ChatsScreen(
                             chatId: chatId,
-                            otherUserName: otherUser['displayName'],
+                            otherUserName: otherUser['displayName'] ?? 'User',
                           ),
                         ),
                       );
                     },
                   );
                 },
-              );
-            },
+              );            },
           );
         },
       ),
