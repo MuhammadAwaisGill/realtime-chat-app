@@ -115,7 +115,33 @@ class ChatScreen extends StatelessWidget {
                       style: TextStyle(fontSize: 12, color: Colors.grey),
                     )
                         : null,
-                    onTap: () {
+                    onLongPress: () async {
+                      bool? confirm = await showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: Text('Delete Chat'),
+                          content: Text('Are you sure you want to delete this chat?'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context, false),
+                              child: Text('Cancel'),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.pop(context, true),
+                              child: Text('Delete', style: TextStyle(color: Colors.red)),
+                            ),
+                          ],
+                        ),
+                      );
+
+                      if (confirm == true) {
+                        await FirebaseFirestore.instance
+                            .collection('chats')
+                            .doc(chatId)
+                            .delete();
+                      }
+                    },
+                  onTap: () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(

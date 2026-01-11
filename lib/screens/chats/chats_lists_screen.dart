@@ -17,12 +17,16 @@ class _ChatsScreenState extends State<ChatsScreen> {
   Future<void> sendMessage() async {
     if(_messageController.text.trim().isEmpty) return;
 
+    final messageText = _messageController.text.trim();
+
+    _messageController.clear();
+
     await FirebaseFirestore.instance
     .collection('chats')
     .doc(widget.chatId)
     .collection('messages')
     .add({
-      'text': _messageController.text.trim(),
+      'text': messageText,
       'senderId': currentUser.uid,
       'createdAt': FieldValue.serverTimestamp()
     });
@@ -31,11 +35,9 @@ class _ChatsScreenState extends State<ChatsScreen> {
     .collection('chats')
     .doc(widget.chatId)
     .update({
-      'lastMessage': _messageController.text.trim(),
+      'lastMessage': messageText,
       'lastMessageTime': FieldValue.serverTimestamp()
     });
-
-    _messageController.clear();
   }
 
   @override
@@ -44,14 +46,17 @@ class _ChatsScreenState extends State<ChatsScreen> {
       appBar: AppBar(
         title: Text("Chats"),
         centerTitle: true,
-        actions: [
-          IconButton(onPressed: () {
-            }, icon: Icon(Icons.search)
-          )
-        ],
+        bottom: PreferredSize(
+          preferredSize: Size.fromHeight(1.0),
+          child: Container(
+            color: Colors.grey[300],
+            height: 1.0,
+          ),
+        ),
       ),
       body: Column(
         children: [
+          SizedBox(height: 5,),
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
@@ -134,10 +139,12 @@ class _ChatsScreenState extends State<ChatsScreen> {
                     icon: Icon(Icons.send, color: Colors.white,),
                     onPressed: sendMessage,
                   ),
-                )
+                ),
+                SizedBox(width: 3,),
               ],
             ),
-          )
+          ),
+          SizedBox(height: 5)
         ],
       ),
     );

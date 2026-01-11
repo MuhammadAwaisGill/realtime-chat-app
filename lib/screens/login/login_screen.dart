@@ -97,6 +97,7 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                SizedBox(height: 20,),
                 Center(child: Text(
                   "Welcome Back!",
                   style: TextStyle(fontSize: 36, fontWeight: FontWeight.bold)
