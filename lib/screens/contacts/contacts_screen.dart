@@ -1,9 +1,7 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:realtime_chat_app/screens/chats/chat_screen.dart';
-
 import '../chats/chats_lists_screen.dart';
+import '../../services/chat_service.dart';
+import '../../services/user_service.dart';
 
 class ContactsScreen extends StatefulWidget {
   const ContactsScreen({super.key});
@@ -13,61 +11,11 @@ class ContactsScreen extends StatefulWidget {
 }
 
 class _ContactsScreenState extends State<ContactsScreen> {
+  final UserService _userService = UserService();
+  final ChatService _chatService = ChatService();
 
-  Stream<List<Map<String, dynamic>>> getContacts() {
-    final currentUser = FirebaseAuth.instance.currentUser;
-
-    return FirebaseFirestore.instance
-        .collection('users')
-        .snapshots()
-        .map((snapshot){
-      return snapshot.docs
-          .where((doc) => doc['uid'] != currentUser!.uid)
-          .map((doc) => doc.data())
-          .toList();
-    });
-  }
-
-  Future<void> startChat(BuildContext context, Map<String, dynamic> contact) async {
-    final currentUser = FirebaseAuth.instance.currentUser!;
-
-    List<String> ids = [currentUser.uid, contact['uid']];
-    ids.sort();
-    String chatId = ids.join('_');
-
-    final chatDoc = await FirebaseFirestore.instance
-        .collection('chats')
-        .doc(chatId)
-        .get();
-
-    if (!chatDoc.exists) {
-      await FirebaseFirestore.instance
-          .collection('chats')
-          .doc(chatId)
-          .set({
-        'participants': [currentUser.uid, contact['uid']],
-        'createdAt': FieldValue.serverTimestamp(),
-        'lastMessage': '',
-        'unreadCount': {
-          currentUser.uid: 0,
-          contact['uid']: 0,
-        },
-      });
-    } else {
-      // ADD THIS - Update existing chat to add unreadCount if missing
-      final chatData = chatDoc.data() as Map<String, dynamic>;
-      if (chatData['unreadCount'] == null) {
-        await FirebaseFirestore.instance
-            .collection('chats')
-            .doc(chatId)
-            .update({
-          'unreadCount': {
-            currentUser.uid: 0,
-            contact['uid']: 0,
-          },
-        });
-      }
-    }
+  Future<void> _startChat(BuildContext context, Map<String, dynamic> contact) async {
+    final chatId = await _chatService.createOrGetChat(contact['uid']);
 
     Navigator.push(
       context,
@@ -96,15 +44,13 @@ class _ContactsScreenState extends State<ContactsScreen> {
         ),
       ),
       body: StreamBuilder<List<Map<String, dynamic>>>(
-        stream: getContacts(),
+        stream: _userService.getContacts(),
         builder: (context, snapshot) {
-          print('Has data: ${snapshot.hasData}');
-          print('Data length: ${snapshot.data?.length}');
-          if(snapshot.connectionState == ConnectionState.waiting){
-            return Center(child: CircularProgressIndicator(),);
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
           }
 
-          if(!snapshot.hasData || snapshot.data!.isEmpty){
+          if (!snapshot.hasData || snapshot.data!.isEmpty) {
             return Center(child: Text("No contacts found"));
           }
 
@@ -112,7 +58,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
 
           return ListView.builder(
             itemCount: contacts.length,
-            itemBuilder: (context,index){
+            itemBuilder: (context, index) {
               final contact = contacts[index];
 
               return ListTile(
@@ -122,9 +68,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
                 title: Text(contact['displayName']),
                 subtitle: Text(contact['email']),
                 trailing: Icon(Icons.chat_bubble_outline),
-                onTap: () {
-                  startChat(context, contact);
-                },
+                onTap: () => _startChat(context, contact),
               );
             },
           );

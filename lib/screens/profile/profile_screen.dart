@@ -1,7 +1,10 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-
 import '../login/login_screen.dart';
+import 'edit_profile.dart';
+import 'help_and_support/help_support.dart';
+import 'notifications_screen.dart';
+import 'privacy/privacy_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({Key? key}) : super(key: key);
@@ -61,36 +64,76 @@ class ProfileScreen extends StatelessWidget {
             leading: Icon(Icons.person),
             title: Text('Edit Profile'),
             trailing: Icon(Icons.arrow_forward_ios, size: 16),
-            onTap: () {},
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => EditProfileScreen()),
+              );
+            },
           ),
           ListTile(
             leading: Icon(Icons.notifications),
             title: Text('Notifications'),
             trailing: Icon(Icons.arrow_forward_ios, size: 16),
-            onTap: () {},
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => NotificationsScreen()),
+              );
+            },
           ),
           ListTile(
             leading: Icon(Icons.privacy_tip),
             title: Text('Privacy'),
             trailing: Icon(Icons.arrow_forward_ios, size: 16),
-            onTap: () {},
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => PrivacyScreen()),
+              );
+            },
           ),
           ListTile(
             leading: Icon(Icons.help),
             title: Text('Help & Support'),
             trailing: Icon(Icons.arrow_forward_ios, size: 16),
-            onTap: () {},
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => HelpSupportScreen()),
+              );
+            },
           ),
           SizedBox(height: 16),
           ListTile(
             leading: Icon(Icons.logout, color: Colors.red),
             title: Text('Logout', style: TextStyle(color: Colors.red)),
             onTap: () async {
-              await FirebaseAuth.instance.signOut();
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => LoginScreen()),
+              bool? confirm = await showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: Text('Logout'),
+                  content: Text('Are you sure you want to logout?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: Text('Cancel'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      child: Text('Logout', style: TextStyle(color: Colors.red)),
+                    ),
+                  ],
+                ),
               );
+
+              if (confirm == true) {
+                await FirebaseAuth.instance.signOut();
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => LoginScreen()),
+                );
+              }
             },
           ),
         ],
