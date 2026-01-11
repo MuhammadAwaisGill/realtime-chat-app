@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:realtime_chat_app/screens/chats/chats_lists_screen.dart';
+import 'package:realtime_chat_app/screens/chats/chat_screen.dart';
+
+import '../chats/chats_lists_screen.dart';
 
 class ContactsScreen extends StatefulWidget {
   const ContactsScreen({super.key});
@@ -19,10 +21,10 @@ class _ContactsScreenState extends State<ContactsScreen> {
         .collection('users')
         .snapshots()
         .map((snapshot){
-          return snapshot.docs
-              .where((doc) => doc['uid'] != currentUser!.uid)
-              .map((doc) => doc.data())
-              .toList();
+      return snapshot.docs
+          .where((doc) => doc['uid'] != currentUser!.uid)
+          .map((doc) => doc.data())
+          .toList();
     });
   }
 
@@ -46,7 +48,25 @@ class _ContactsScreenState extends State<ContactsScreen> {
         'participants': [currentUser.uid, contact['uid']],
         'createdAt': FieldValue.serverTimestamp(),
         'lastMessage': '',
+        'unreadCount': {
+          currentUser.uid: 0,
+          contact['uid']: 0,
+        },
       });
+    } else {
+      // ADD THIS - Update existing chat to add unreadCount if missing
+      final chatData = chatDoc.data() as Map<String, dynamic>;
+      if (chatData['unreadCount'] == null) {
+        await FirebaseFirestore.instance
+            .collection('chats')
+            .doc(chatId)
+            .update({
+          'unreadCount': {
+            currentUser.uid: 0,
+            contact['uid']: 0,
+          },
+        });
+      }
     }
 
     Navigator.push(
@@ -55,6 +75,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
         builder: (context) => ChatsScreen(
           chatId: chatId,
           otherUserName: contact['displayName'],
+          otherUserId: contact['uid'],
         ),
       ),
     );
@@ -112,4 +133,3 @@ class _ContactsScreenState extends State<ContactsScreen> {
     );
   }
 }
-
