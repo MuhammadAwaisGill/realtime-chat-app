@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../providers/auth_provider.dart';
+import '../../../providers/chat_provider.dart';
+import '../../../providers/user_service_provider.dart';
 
-class BlockedContactsScreen extends StatefulWidget {
-  const BlockedContactsScreen({Key? key}) : super(key: key);
+class BlockedContactsScreen extends ConsumerStatefulWidget {
+  const BlockedContactsScreen({super.key});
 
   @override
-  State<BlockedContactsScreen> createState() => _BlockedContactsScreenState();
+  ConsumerState<BlockedContactsScreen> createState() => _BlockedContactsScreenState();
 }
 
-class _BlockedContactsScreenState extends State<BlockedContactsScreen> {
-  final currentUser = FirebaseAuth.instance.currentUser!;
+class _BlockedContactsScreenState extends ConsumerState<BlockedContactsScreen> {
   List<String> blockedUserIds = [];
   bool _isLoading = true;
 
@@ -22,12 +23,12 @@ class _BlockedContactsScreenState extends State<BlockedContactsScreen> {
 
   Future<void> _loadBlockedContacts() async {
     try {
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(currentUser.uid)
-          .get();
+      final currentUser = ref.read(authStateProvider).value;
+      final userService = ref.read(userServiceProvider);
 
-      final userData = userDoc.data();
+      final userDoc = await userService.getUserData(currentUser!.uid);
+      final userData = userDoc.data() as Map<String, dynamic>?;
+
       if (userData != null && userData['blockedUsers'] != null) {
         setState(() {
           blockedUserIds = List<String>.from(userData['blockedUsers']);
@@ -62,12 +63,10 @@ class _BlockedContactsScreenState extends State<BlockedContactsScreen> {
 
     if (confirm == true) {
       try {
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(currentUser.uid)
-            .update({
-          'blockedUsers': FieldValue.arrayRemove([userId]),
-        });
+        final currentUser = ref.read(authStateProvider).value;
+        final userService = ref.read(userServiceProvider);
+
+        await userService.unblockUser(currentUser!.uid, userId);
 
         setState(() {
           blockedUserIds.remove(userId);
@@ -101,67 +100,62 @@ class _BlockedContactsScreenState extends State<BlockedContactsScreen> {
       body: _isLoading
           ? Center(child: CircularProgressIndicator())
           : blockedUserIds.isEmpty
-          ? _buildEmptyState()
+          ? Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.block, size: 80, color: Colors.grey),
+            SizedBox(height: 16),
+            Text(
+              'No blocked contacts',
+              style: TextStyle(fontSize: 18, color: Colors.grey),
+            ),
+            SizedBox(height: 8),
+            Text(
+              'Users you block will appear here',
+              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+            ),
+          ],
+        ),
+      )
           : ListView.builder(
         itemCount: blockedUserIds.length,
         itemBuilder: (context, index) {
-          return _buildBlockedUserItem(blockedUserIds[index]);
+          final userId = blockedUserIds[index];
+          final userService = ref.watch(userServiceProvider);
+
+          return FutureBuilder(
+            future: userService.getUserData(userId),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData) {
+                return SizedBox();
+              }
+
+              final userData = snapshot.data!.data() as Map<String, dynamic>?;
+
+              if (userData == null) {
+                return SizedBox();
+              }
+
+              return ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: Colors.grey,
+                  child: Text(
+                    userData['displayName']?[0].toUpperCase() ?? 'U',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+                title: Text(userData['displayName'] ?? 'Unknown User'),
+                subtitle: Text(userData['email'] ?? ''),
+                trailing: TextButton(
+                  onPressed: () => _unblockUser(userId, userData['displayName'] ?? 'User'),
+                  child: Text('Unblock', style: TextStyle(color: Colors.blue)),
+                ),
+              );
+            },
+          );
         },
       ),
-    );
-  }
-
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.block, size: 80, color: Colors.grey),
-          SizedBox(height: 16),
-          Text(
-            'No blocked contacts',
-            style: TextStyle(fontSize: 18, color: Colors.grey),
-          ),
-          SizedBox(height: 8),
-          Text(
-            'Users you block will appear here',
-            style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBlockedUserItem(String userId) {
-    return FutureBuilder<DocumentSnapshot>(
-      future: FirebaseFirestore.instance.collection('users').doc(userId).get(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return SizedBox();
-        }
-
-        final userData = snapshot.data!.data() as Map<String, dynamic>?;
-
-        if (userData == null) {
-          return SizedBox();
-        }
-
-        return ListTile(
-          leading: CircleAvatar(
-            backgroundColor: Colors.grey,
-            child: Text(
-              userData['displayName']?[0].toUpperCase() ?? 'U',
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
-          title: Text(userData['displayName'] ?? 'Unknown User'),
-          subtitle: Text(userData['email'] ?? ''),
-          trailing: TextButton(
-            onPressed: () => _unblockUser(userId, userData['displayName'] ?? 'User'),
-            child: Text('Unblock', style: TextStyle(color: Colors.blue)),
-          ),
-        );
-      },
     );
   }
 }

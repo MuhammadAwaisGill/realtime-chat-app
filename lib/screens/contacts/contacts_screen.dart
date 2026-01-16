@@ -1,21 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../providers/user_service_provider.dart';
 import '../chats/chats_lists_screen.dart';
-import '../../services/chat_service.dart';
-import '../../services/user_service.dart';
+import '../../providers/chat_provider.dart';
 
-class ContactsScreen extends StatefulWidget {
+class ContactsScreen extends ConsumerStatefulWidget {
   const ContactsScreen({super.key});
 
   @override
-  State<ContactsScreen> createState() => _ContactsScreenState();
+  ConsumerState<ContactsScreen> createState() => _ContactsScreenState();
 }
 
-class _ContactsScreenState extends State<ContactsScreen> {
-  final UserService _userService = UserService();
-  final ChatService _chatService = ChatService();
-
+class _ContactsScreenState extends ConsumerState<ContactsScreen> {
   Future<void> _startChat(BuildContext context, Map<String, dynamic> contact) async {
-    final chatId = await _chatService.createOrGetChat(contact['uid']);
+    final chatService = ref.read(chatServiceProvider);
+    final chatId = await chatService.createOrGetChat(contact['uid']);
 
     Navigator.push(
       context,
@@ -31,6 +30,8 @@ class _ContactsScreenState extends State<ContactsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final userService = ref.watch(userServiceProvider);
+
     return Scaffold(
       appBar: AppBar(
         title: Text("Contacts"),
@@ -44,7 +45,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
         ),
       ),
       body: StreamBuilder<List<Map<String, dynamic>>>(
-        stream: _userService.getContacts(),
+        stream: userService.getContacts(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(child: CircularProgressIndicator());

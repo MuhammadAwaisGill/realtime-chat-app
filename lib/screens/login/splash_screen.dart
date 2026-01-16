@@ -1,34 +1,31 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:realtime_chat_app/screens/home/home_screen.dart';
-import 'package:realtime_chat_app/screens/login/login_screen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../providers/auth_wrapper.dart';
 
-class SplashScreen extends StatefulWidget {
+class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
+class _SplashScreenState extends ConsumerState<SplashScreen> {
+
   @override
   void initState() {
     super.initState();
-    _checkAuthStatus();
+    _navigateToAuthWrapper();
   }
 
-  Future<void> _checkAuthStatus() async {
+  Future<void> _navigateToAuthWrapper() async {
     await Future.delayed(const Duration(seconds: 3));
-
-    final user = FirebaseAuth.instance.currentUser;
 
     if (!mounted) return;
 
-    if (user != null) {
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => HomeScreen()));
-    } else{
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => LoginScreen()));
-    }
+    Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const AuthWrapper())
+    );
   }
 
   @override

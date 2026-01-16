@@ -1,56 +1,51 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import 'package:realtime_chat_app/screens/chats/chat_screen.dart';
-import '../../change_mode/theme_switcher.dart';
-import '../contacts/contacts_screen.dart';
-import '../login/login_screen.dart';
+import 'package:realtime_chat_app/screens/contacts/contacts_screen.dart';
+import '../../providers/auth_provider.dart';
 import '../profile/profile_screen.dart';
 
-class HomeScreen extends StatefulWidget {
-  @override
-  _HomeScreenState createState() => _HomeScreenState();
-}
+final currentTabProvider = StateProvider<int>((ref) => 0);
 
-class _HomeScreenState extends State<HomeScreen> {
-  int _currentIndex = 0;
-
-  final List<Widget> _screens = [
-    ChatScreen(),
-    ContactsScreen(),
-    ProfileScreen(),
-  ];
+class HomeScreen extends ConsumerWidget {
+  const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final currentIndex = ref.watch(currentTabProvider);
+    final authController = ref.read(authControllerProvider);
+
+    final List<Widget> screens = [
+      ChatScreen(),
+      ContactsScreen(),
+      ProfileScreen()
+    ];
+
     return Scaffold(
       appBar: AppBar(
-        title: Text("Realtime Chat App"),
+        title: const Text("Realtime Chat App"),
         centerTitle: true,
         backgroundColor: Colors.blue,
         actions: [
-          ThemeSwitcher(),
+          // ThemeSwitcher(), // Add your theme switcher
           IconButton(
-            icon: Icon(Icons.logout),
+            icon: const Icon(Icons.logout),
             onPressed: () async {
-              await FirebaseAuth.instance.signOut();
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => LoginScreen()),
-              );
+              await authController.signOut();
+              // Navigation handled by AuthWrapper
             },
           ),
         ],
       ),
-      body: _screens[_currentIndex],
+      body: screens[currentIndex],
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: Colors.lightBlue[300],
-        currentIndex: _currentIndex,
+        currentIndex: currentIndex,
         onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
+          ref.read(currentTabProvider.notifier).state = index;
         },
-        items: [
+        items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.chat),
             label: 'Chats',

@@ -1,18 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/user_service_provider.dart';
+import 'package:image_picker/image_picker.dart';
 
-class EditProfileScreen extends StatefulWidget {
-  const EditProfileScreen({Key? key}) : super(key: key);
+class EditProfileScreen extends ConsumerStatefulWidget {
+  const EditProfileScreen({super.key});
 
   @override
-  State<EditProfileScreen> createState() => _EditProfileScreenState();
+  ConsumerState<EditProfileScreen> createState() => _EditProfileScreenState();
 }
 
-class _EditProfileScreenState extends State<EditProfileScreen> {
+class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   final _displayNameController = TextEditingController();
-  final user = FirebaseAuth.instance.currentUser;
   bool _isLoading = false;
 
   @override
@@ -22,14 +23,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _loadUserData() async {
+    final user = ref.read(authStateProvider).value;
     if (user != null) {
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user!.uid)
-          .get();
+      final userService = ref.read(userServiceProvider);
+      final userDoc = await userService.getUserData(user.uid);
 
       if (userDoc.exists) {
-        final userData = userDoc.data();
+        final userData = userDoc.data() as Map<String, dynamic>?;
         _displayNameController.text = userData?['displayName'] ?? '';
       }
     }
@@ -41,14 +41,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     setState(() => _isLoading = true);
 
     try {
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user!.uid)
-          .update({
-        'displayName': _displayNameController.text.trim(),
-      });
+      final user = ref.read(authStateProvider).value;
+      final userService = ref.read(userServiceProvider);
 
-      await user!.updateDisplayName(_displayNameController.text.trim());
+      await userService.updateUserProfile(
+        user!.uid,
+        _displayNameController.text.trim(),
+      );
+
+      await user.updateDisplayName(_displayNameController.text.trim());
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Profile updated successfully')),
@@ -64,8 +65,46 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
+  final ImagePicker _picker = ImagePicker();
+
+  Future<void> _pickImage() async {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: Icon(Icons.camera_alt),
+              title: Text('Camera'),
+              onTap: () async {
+                Navigator.pop(context);
+                final XFile? image = await _picker.pickImage(source: ImageSource.camera);
+                if (image != null) {
+                  // Upload image to Firebase Storage and update user photoURL
+                }
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.photo_library),
+              title: Text('Gallery'),
+              onTap: () async {
+                Navigator.pop(context);
+                final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+                if (image != null) {
+                  // Upload image to Firebase Storage and update user photoURL
+                }
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final authState = ref.watch(authStateProvider);
+    final user = authState.value;
     return Scaffold(
       appBar: AppBar(
         title: Text('Edit Profile'),
@@ -95,8 +134,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         : null,
                     child: user?.photoURL == null
                         ? Text(
-                      user?.displayName?.substring(0, 1).toUpperCase() ??
-                          'U',
+                      user?.displayName?.substring(0, 1).toUpperCase() ?? 'U',
                       style: TextStyle(fontSize: 40, color: Colors.white),
                     )
                         : null,
@@ -104,13 +142,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   Positioned(
                     bottom: 0,
                     right: 0,
-                    child: CircleAvatar(
-                      radius: 18,
-                      backgroundColor: Colors.blue,
-                      child: Icon(Icons.camera_alt, size: 18, color: Colors.white),
+                    child: GestureDetector(
+                      onTap: _pickImage,
+                      child: CircleAvatar(
+                        radius: 18,
+                        backgroundColor: Colors.blue,
+                        child: Icon(Icons.camera_alt, size: 18, color: Colors.white),
+                      ),
                     ),
-                  ),
-                ],
+                  ),                ],
               ),
               SizedBox(height: 40),
               TextFormField(

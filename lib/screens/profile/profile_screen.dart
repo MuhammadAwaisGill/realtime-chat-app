@@ -1,17 +1,19 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../providers/auth_provider.dart';
 import '../login/login_screen.dart';
 import 'edit_profile.dart';
 import 'help_and_support/help_support.dart';
 import 'notifications_screen.dart';
 import 'privacy/privacy_screen.dart';
 
-class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({Key? key}) : super(key: key);
+class ProfileScreen extends ConsumerWidget {
+  const ProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authStateProvider);
+    final user = authState.value;
 
     return Scaffold(
       appBar: AppBar(
@@ -128,11 +130,8 @@ class ProfileScreen extends StatelessWidget {
               );
 
               if (confirm == true) {
-                await FirebaseAuth.instance.signOut();
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => LoginScreen()),
-                );
+                final authController = ref.read(authControllerProvider);
+                await authController.signOut();
               }
             },
           ),

@@ -1,30 +1,20 @@
-
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:realtime_chat_app/change_mode/theme_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:realtime_chat_app/providers/theme_provider.dart';
 
-class ThemeSwitcher extends StatelessWidget {
+class ThemeSwitcher extends ConsumerWidget {
+  const ThemeSwitcher({super.key});
+
   @override
-  Widget build(BuildContext context) {
-    final themeProvider = Provider.of<ThemeProvider>(context);
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeModeProvider);
 
     return PopupMenuButton<ThemeMode>(
       icon: Icon(Icons.brightness_6),
       onSelected: (ThemeMode mode) {
-        themeProvider.setTheme(mode);
+        ref.read(themeModeProvider.notifier).setTheme(mode);
       },
       itemBuilder: (context) => <PopupMenuEntry<ThemeMode>>[
-        PopupMenuItem<ThemeMode>(
-          value: ThemeMode.system,
-          child: Row(
-            children: [
-              Icon(Icons.phone_android),
-              SizedBox(width: 8),
-              Text('System'),
-            ],
-          ),
-        ),
         PopupMenuItem<ThemeMode>(
           value: ThemeMode.light,
           child: Row(

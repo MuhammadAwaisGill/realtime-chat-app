@@ -2,12 +2,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class ChatService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  final _firestore = FirebaseFirestore.instance;
+  final _auth = FirebaseAuth.instance;
 
   String get currentUserId => _auth.currentUser!.uid;
 
-  // Get all chats for current user
   Stream<QuerySnapshot> getUserChats() {
     return _firestore
         .collection('chats')
@@ -15,7 +15,6 @@ class ChatService {
         .snapshots();
   }
 
-  // Get messages for a specific chat
   Stream<QuerySnapshot> getChatMessages(String chatId) {
     return _firestore
         .collection('chats')
@@ -25,7 +24,6 @@ class ChatService {
         .snapshots();
   }
 
-  // Send a message
   Future<void> sendMessage(String chatId, String messageText, String otherUserId) async {
     await _firestore
         .collection('chats')
@@ -47,7 +45,6 @@ class ChatService {
     });
   }
 
-  // Initialize unread count for a chat
   Future<void> initializeUnreadCount(String chatId, String otherUserId) async {
     final chatDoc = await _firestore.collection('chats').doc(chatId).get();
     final chatData = chatDoc.data() as Map<String, dynamic>?;
@@ -64,7 +61,6 @@ class ChatService {
     await resetUnreadCount(chatId);
   }
 
-  // Reset unread count for current user
   Future<void> resetUnreadCount(String chatId) async {
     await _firestore
         .collection('chats')
@@ -74,12 +70,10 @@ class ChatService {
     });
   }
 
-  // Delete a chat
   Future<void> deleteChat(String chatId) async {
     await _firestore.collection('chats').doc(chatId).delete();
   }
 
-  // Create or get existing chat
   Future<String> createOrGetChat(String otherUserId) async {
     List<String> ids = [currentUserId, otherUserId];
     ids.sort();

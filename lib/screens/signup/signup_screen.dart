@@ -1,58 +1,46 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:realtime_chat_app/screens/login/login_screen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../providers/auth_provider.dart';
 
-class SignupScreen extends StatefulWidget {
+class SignupScreen extends ConsumerStatefulWidget {
   const SignupScreen({super.key});
 
   @override
-  State<SignupScreen> createState() => _SignupScreenState();
+  ConsumerState<SignupScreen> createState() => _SignupScreenState();
 }
 
-class _SignupScreenState extends State<SignupScreen> {
-  final auth = FirebaseAuth.instance;
-  final firestore = FirebaseFirestore.instance;
+class _SignupScreenState extends ConsumerState<SignupScreen> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-  bool _isLoading = false;
 
   Future<void> _signup() async {
     if (_formKey.currentState!.validate()) {
-      setState(() {
-        _isLoading = true;
-      });
+      ref.read(signupLoadingProvider.notifier).state = true;
+
       try {
-        UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-          email: _emailController.text.trim(),
-          password: _passwordController.text.trim()
+        final authController = ref.read(authControllerProvider);
+        await authController.signUp(
+          name: _nameController.text,
+          email: _emailController.text,
+          password: _passwordController.text,
         );
 
-        await userCredential.user?.updateDisplayName(_nameController.text.trim());
-
-        await FirebaseFirestore.instance
-        .collection('users')
-        .doc(userCredential.user!.uid)
-        .set({
-          'uid': userCredential.user!.uid,
-          'email': _emailController.text.trim(),
-          'displayName': _nameController.text.trim(),
-          'createdAt': FieldValue.serverTimestamp()
-        });
-
-        Navigator.pop(context);
-      } on FirebaseException catch (e) {
-        String message = "An error Occured!";
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(message))
-        );
+        if (mounted) {
+          Navigator.pop(context);
+        }
+      } catch (e) {
+        if (mounted) {
+          final authController = ref.read(authControllerProvider);
+          final message = authController.getErrorMessage(e);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(message)),
+          );
+        }
       } finally {
-        setState(() {
-          _isLoading = false;
-        });
+        ref.read(signupLoadingProvider.notifier).state = false;
       }
     }
   }
@@ -68,44 +56,44 @@ class _SignupScreenState extends State<SignupScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isLoading = ref.watch(signupLoadingProvider);
+
     return Scaffold(
       appBar: AppBar(
-        title: Text("Sign Up"),
+        title: const Text("Sign Up"),
         centerTitle: true,
         backgroundColor: Colors.lightBlueAccent,
       ),
       body: Padding(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         child: SingleChildScrollView(
           child: Form(
             key: _formKey,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text("Create an Account",
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold
-                  ),
+                const Text(
+                  "Create an Account",
+                  style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
                 ),
-                SizedBox(height: 28,),
+                const SizedBox(height: 28),
                 TextFormField(
                   controller: _nameController,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     hintText: "Full Name",
                     border: OutlineInputBorder(),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return "Please Enter your name";
+                      return "Please enter your name";
                     }
                     return null;
                   },
                 ),
-                SizedBox(height: 12),
+                const SizedBox(height: 12),
                 TextFormField(
                   controller: _emailController,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     hintText: "Email",
                     border: OutlineInputBorder(),
                   ),
@@ -119,29 +107,29 @@ class _SignupScreenState extends State<SignupScreen> {
                     return null;
                   },
                 ),
-                SizedBox(height: 12,),
+                const SizedBox(height: 12),
                 TextFormField(
                   controller: _passwordController,
                   obscureText: true,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     hintText: "Password",
-                    border: OutlineInputBorder()
+                    border: OutlineInputBorder(),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return "Please enter the password";
                     }
                     if (value.length < 8) {
-                      return "Password must be atleast 8 characters";
+                      return "Password must be at least 8 characters";
                     }
                     return null;
                   },
                 ),
-                SizedBox(height: 12,),
+                const SizedBox(height: 12),
                 TextFormField(
                   controller: _confirmPasswordController,
                   obscureText: true,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     hintText: "Confirm Password",
                     border: OutlineInputBorder(),
                   ),
@@ -150,29 +138,28 @@ class _SignupScreenState extends State<SignupScreen> {
                       return "Please confirm your password";
                     }
                     if (value != _passwordController.text) {
-                      return "Passwords do not Match!";
+                      return "Passwords do not match!";
                     }
                     return null;
                   },
                 ),
-                SizedBox(height: 22),
-                _isLoading ? CircularProgressIndicator()
-                : ElevatedButton(
-                  onPressed: () {
-                    _signup();
-                 },
-                  child: Text("Sign Up"),
+                const SizedBox(height: 22),
+                isLoading
+                    ? const CircularProgressIndicator()
+                    : ElevatedButton(
+                  onPressed: _signup,
                   style: ElevatedButton.styleFrom(
-                      minimumSize: Size(double.infinity, 50)
+                    minimumSize: const Size(double.infinity, 50),
                   ),
+                  child: const Text("Sign Up"),
                 ),
-                SizedBox(height: 16,),
+                const SizedBox(height: 16),
                 TextButton(
                   onPressed: () {
-                    Navigator.push(context, MaterialPageRoute(builder: (_) => LoginScreen()));
+                    Navigator.pop(context);
                   },
-                  child: Text("Already have an account? Login here"),
-                )
+                  child: const Text("Already have an account? Login here"),
+                ),
               ],
             ),
           ),

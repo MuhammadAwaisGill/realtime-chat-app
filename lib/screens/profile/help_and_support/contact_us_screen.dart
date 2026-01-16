@@ -163,13 +163,13 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
               _buildContactMethod(
                 icon: Icons.email,
                 title: 'Email',
-                subtitle: 'support@realtimechat.com',
+                subtitle: 'muhammadawaisgill18@gmail.com',
               ),
               SizedBox(height: 12),
               _buildContactMethod(
                 icon: Icons.phone,
                 title: 'Phone',
-                subtitle: '+1 (555) 123-4567',
+                subtitle: '+92 308 5297626',
               ),
               SizedBox(height: 12),
               _buildContactMethod(
